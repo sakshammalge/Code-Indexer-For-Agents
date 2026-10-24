@@ -254,7 +254,8 @@ def render_pointer(index: Index) -> str:
         "(`Class.method` works), `search_code(query, path_glob?, lang?)` for keyword search, "
         "`file_outline(path)` before reading a large file, and `read_file(path, start_line, end_line)` "
         "for just the lines you need. `project_overview()` gives the layout, entry points and key "
-        f"files; the full map is `{INDEX_DIR}/{MAP_FILE}`."
+        f"files. `{INDEX_DIR}/{MAP_FILE}` lists every file's symbols; it can be large, so search it "
+        "rather than reading it whole."
     )
 
 

@@ -83,6 +83,12 @@ def cmd_symbol(args) -> int:
     return 0
 
 
+def cmd_overview(args) -> int:
+    with _query_index(args) as idx:
+        print(tools.overview(idx))
+    return 0
+
+
 def cmd_outline(args) -> int:
     with _query_index(args) as idx:
         print(tools.file_outline(idx, args.file))
@@ -151,6 +157,10 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--limit", "-n", type=int, default=30)
     common(sp)
     sp.set_defaults(func=cmd_symbol)
+
+    sp = sub.add_parser("overview", help="languages, layout, entry points and key files (= project_overview)")
+    common(sp)
+    sp.set_defaults(func=cmd_overview)
 
     sp = sub.add_parser("outline", help="show the symbol outline of a file")
     sp.add_argument("file")
