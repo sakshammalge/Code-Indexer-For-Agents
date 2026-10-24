@@ -144,9 +144,12 @@ ones were vague questions, lookups of frequently used names, and multi-step trac
 | Full block, 10 easy questions | +6.7% | 10/10 vs 10/10 |
 | Full block, 9 harder questions | +12.2% | 9/9 vs 8.75/9 |
 | Tools only, same 9 harder questions | +1.3% | 9/9 vs 8.75/9 |
+| **Pointer block (current default)**, 10 easy questions | +0.1% | 10/10 vs 10/10 |
+| **Pointer block (current default)**, 9 harder questions, fresh baseline | +2.1% | 9/9 vs 9/9 |
 
 The full overview never shortened an investigation enough to pay for itself, so the default is
-now the pointer. Definition lookups are where the index clearly wins. On Django,
+now the pointer. With the pointer, the overhead is within run-to-run noise (about ±1–2k tokens per
+task). Definition lookups are where the index clearly wins. On Django,
 `grep -rnw save` returns 1,855 lines (about 38k tokens), while `ctxindex symbol Model.save`
 returns about 56 tokens. Across 40 random names per repo, ctxindex returned the right definition
 first 95–100% of the time. On well-known open-source code the model often already knows where
