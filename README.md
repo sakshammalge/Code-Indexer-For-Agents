@@ -46,6 +46,7 @@ mode (it picks up `.vscode/mcp.json`) and approve the `ctxindex` server.
 | `ctxindex search QUERY… [-g GLOB] [-l LANG] [-n N]` | Keyword search, e.g. `ctxindex search retry backoff -g 'src/**/*.ts'` |
 | `ctxindex symbol NAME [-k KIND]` | Find definitions, e.g. `ctxindex symbol UserService.get_user`, `-k class` |
 | `ctxindex outline FILE` | Symbol outline of one file |
+| `ctxindex overview` | Languages, layout, entry points and key files (same as `project_overview`) |
 | `ctxindex serve [--root DIR] [--refresh-interval S]` | Run the MCP server on stdio |
 
 Commands that take `--root` default to the nearest parent folder that contains `.ctxindex/`,

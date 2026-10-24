@@ -272,6 +272,8 @@ def test_cli_init(repo, capsys, monkeypatch):
     assert "app/models.py:8-19" in capsys.readouterr().out
     assert main(["search", "restock"]) == 0
     assert "app/models.py" in capsys.readouterr().out
+    assert main(["overview"]) == 0
+    assert "Entry points" in capsys.readouterr().out
     # re-running context changes nothing
     assert main(["context", str(repo)]) == 0
     out = capsys.readouterr().out
