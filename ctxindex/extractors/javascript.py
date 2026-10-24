@@ -21,7 +21,7 @@ _DECLS = [
         r"^[ \t]*" + _EXPORT + r"(?:declare\s+)?interface\s+(?P<name>[A-Za-z_$][\w$]*)(?P<rest>[^{]*)",
         re.M)),
     ("type", re.compile(
-        r"^[ \t]*" + _EXPORT + r"(?:declare\s+)?type\s+(?P<name>[A-Za-z_$][\w$]*)\s*(?P<rest><[^=]*>)?\s*=",
+        r"^[ \t]*" + _EXPORT + r"(?:declare\s+)?type\s+(?P<name>[A-Za-z_$][\w$]*)\s*[<=]",
         re.M)),
     ("enum", re.compile(
         r"^[ \t]*" + _EXPORT + r"(?:declare\s+)?(?:const\s+)?enum\s+(?P<name>[A-Za-z_$][\w$]*)", re.M)),

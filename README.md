@@ -6,11 +6,13 @@ embeddings and no network.
 
 ctxindex gives agents context in two ways:
 
-1. **Context files.** It writes a compact, auto-generated block into `AGENTS.md`, `CLAUDE.md`
+1. **Context files.** It writes a short, auto-generated block into `AGENTS.md`, `CLAUDE.md`
    and `.github/copilot-instructions.md`, between `<!-- ctxindex:start -->` and
-   `<!-- ctxindex:end -->`. The block lists languages and file counts, a depth-limited directory
-   tree, entry points, one-line summaries of the key files, and a note on which MCP tools to use.
-   **Text outside the markers is never touched.** The full map goes to `.ctxindex/PROJECT_MAP.md`.
+   `<!-- ctxindex:end -->`. **Text outside the markers is never touched.** By default the block is
+   a pointer of about 150 tokens: it tells the agent the index exists and which MCP tools to use.
+   `--block full` writes the whole overview instead: languages and file counts, a depth-limited
+   directory tree, entry points, and one-line summaries of the key files (1.3k–3.4k tokens on the
+   repos tested). Either way, the full map goes to `.ctxindex/PROJECT_MAP.md`.
 2. **A local MCP server (stdio).** It exposes `project_overview`, `search_code`, `find_symbol`,
    `file_outline`, `read_file` and `reindex`. Before each query it runs an incremental reindex,
    throttled to at most once every 10 s by default, so results stay fresh while you edit.
@@ -38,9 +40,9 @@ mode (it picks up `.vscode/mcp.json`) and approve the `ctxindex` server.
 
 | Command | What it does |
 |---|---|
-| `ctxindex init [path]` | Index, write the context blocks and PROJECT_MAP, and write/merge `.mcp.json` (Claude Code) and `.vscode/mcp.json` (Copilot). Flags: `--no-context`, `--no-mcp`, `--max-files N`, `--depth N`, `--full` |
+| `ctxindex init [path]` | Index, write the context blocks and PROJECT_MAP, and write/merge `.mcp.json` (Claude Code) and `.vscode/mcp.json` (Copilot). Flags: `--block pointer\|full`, `--no-context`, `--no-mcp`, `--max-files N`, `--depth N`, `--full` |
 | `ctxindex index [path]` | Incremental (re)index. `--full` re-parses everything |
-| `ctxindex context [path]` | Regenerate the context blocks and PROJECT_MAP. `--stdout` prints the block instead |
+| `ctxindex context [path]` | Regenerate the context blocks and PROJECT_MAP. `--block pointer\|full` picks the block style (default `pointer`). `--stdout` prints the block instead |
 | `ctxindex search QUERY… [-g GLOB] [-l LANG] [-n N]` | Keyword search, e.g. `ctxindex search retry backoff -g 'src/**/*.ts'` |
 | `ctxindex symbol NAME [-k KIND]` | Find definitions, e.g. `ctxindex symbol UserService.get_user`, `-k class` |
 | `ctxindex outline FILE` | Symbol outline of one file |
@@ -122,3 +124,30 @@ files):
 | Full index | ~17 s |
 | No-op incremental refresh | ~0.05 s |
 | CLI query, including Python startup | ~0.15 s |
+
+## Why the default block is short
+
+The always-loaded block costs tokens in every session, so a benchmark checked whether it pays for itself.
+Sonnet agents answered 19 questions about requests, @tanstack/query-core, Polyfill (C#), rxjs and
+Django, in up to three setups:
+
+- **baseline:** grep and read tools only;
+- **full block:** ctxindex tools plus `--block full` in context;
+- **tools only:** ctxindex tools with no overview in context.
+
+The 10 easy questions ran in the first two setups and the 9 harder ones in all three. The harder
+ones were vague questions, lookups of frequently used names, and multi-step traces.
+
+| Setup | Tokens vs baseline | Correct answers |
+|---|---|---|
+| Full block, 10 easy questions | +6.7% | 10/10 vs 10/10 |
+| Full block, 9 harder questions | +12.2% | 9/9 vs 8.75/9 |
+| Tools only, same 9 harder questions | +1.3% | 9/9 vs 8.75/9 |
+
+The full overview never shortened an investigation enough to pay for itself, so the default is
+now the pointer. Definition lookups are where the index clearly wins. On Django,
+`grep -rnw save` returns 1,855 lines (about 38k tokens), while `ctxindex symbol Model.save`
+returns about 56 tokens. Across 40 random names per repo, ctxindex returned the right definition
+first 95–100% of the time. On well-known open-source code the model often already knows where
+things live, which favours the baseline. Expect more benefit on private or unfamiliar code and
+with less careful agents.
