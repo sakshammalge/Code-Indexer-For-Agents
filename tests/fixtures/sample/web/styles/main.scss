@@ -1,0 +1,23 @@
+// Main stylesheet
+$brand-color: #3366ff;
+
+:root {
+  --spacing-unit: 8px;
+  --color-primary: #{$brand-color};
+}
+
+@mixin card-shadow($depth) {
+  box-shadow: 0 $depth 4px rgba(0,0,0,.2);
+}
+
+.item-list {
+  padding: var(--spacing-unit);
+  li { margin: 0; }
+  &:hover { background: url(http://example.com/bg.png); }
+}
+
+@media (max-width: 600px) {
+  .badge { display: none; }
+}
+
+@keyframes pulse { from { opacity: 1; } to { opacity: .5; } }
