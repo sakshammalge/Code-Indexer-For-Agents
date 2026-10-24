@@ -313,3 +313,13 @@ def test_python_fallback_parents():
     info = get_extractor("x.py").extract("class A:\n    def m(self):\n        x = (\ndef f():\n    pass\n", "x.py")
     assert [(s.name, s.kind, s.parent) for s in info.symbols] == [
         ("A", "class", None), ("m", "method", "A"), ("f", "function", None)]
+
+
+def test_regressions_from_real_repos():
+    ts = "export type QueryFunction<\n  T = unknown,\n  K extends Key = Key,\n> = (ctx: K) => T\n"
+    assert [s.name for s in get_extractor("a.ts").extract(ts, "a.ts").symbols] == ["QueryFunction"]
+    cs = ("namespace N;\nref struct Handler\n{\n    internal static int Len(int a) => a;\n}\n"
+          "static class Guard\n{\n    public static void FileExists(string path, "
+          "[CallerArgumentExpression(\"path\")] string name = \"\")\n    {\n    }\n}\n")
+    syms = {(s.name, s.kind, s.parent) for s in get_extractor("a.cs").extract(cs, "a.cs").symbols}
+    assert {("Handler", "struct", "N"), ("Len", "method", "Handler"), ("FileExists", "method", "Guard")} <= syms

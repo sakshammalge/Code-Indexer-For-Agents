@@ -10,7 +10,8 @@ from .base import (
 )
 
 _MODS = (r"(?:(?:public|private|protected|internal|static|virtual|override|abstract|async|sealed|"
-         r"extern|new|partial|unsafe|readonly|required|file|volatile|const)\s+)*")
+         r"extern|new|partial|unsafe|readonly|required|file|volatile|const|ref)\s+)*")
+_PARAMS = r"\((?:[^()]|\([^()]*\))*\)"  # allows one level of nesting, e.g. [CallerArgumentExpression("x")]
 _ATTRS = r"(?:\[[^\]\n]*\]\s*)*"
 
 _NAMESPACE = re.compile(r"^[ \t]*namespace\s+(?P<name>[\w.]+)\s*(?P<term>[;{])", re.M)
@@ -21,13 +22,13 @@ _TYPE = re.compile(
     re.M,
 )
 _DELEGATE = re.compile(
-    r"^[ \t]*" + _MODS + r"delegate\s+[\w<>\[\],.?\s]+?\s+(?P<name>[A-Za-z_]\w*)\s*(?:<[^>]*>)?\s*\([^)]*\)\s*;",
+    r"^[ \t]*" + _MODS + r"delegate\s+[\w<>\[\],.?\s]+?\s+(?P<name>[A-Za-z_]\w*)\s*(?:<[^>]*>)?\s*" + _PARAMS + r"\s*;",
     re.M,
 )
 _METHOD = re.compile(
     r"^[ \t]*" + _ATTRS + r"(?P<mods>" + _MODS + r")"
     r"(?P<ret>[A-Za-z_][\w<>\[\],.?: ]*?\s+)?(?P<name>[A-Za-z_]\w*)\s*(?P<generic><[^>()]*>)?\s*"
-    r"(?P<params>\([^)]*\))\s*(?:where\s[^{;=]*)?(?::\s*(?:base|this)\s*\([^)]*\)\s*)?(?P<body>\{|=>|;)",
+    r"(?P<params>" + _PARAMS + r")\s*(?:where\s[^{;=]*)?(?::\s*(?:base|this)\s*\([^)]*\)\s*)?(?P<body>\{|=>|;)",
     re.M,
 )
 _PROPERTY = re.compile(
