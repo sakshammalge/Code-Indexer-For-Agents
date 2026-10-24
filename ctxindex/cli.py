@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from . import __version__, tools
-from .context import CONTEXT_FILES, write_context, write_mcp_configs
+from .context import BLOCK_STYLES, CONTEXT_FILES, write_context, write_mcp_configs
 from .index import Index, find_root
 from .scanner import DEFAULT_MAX_BYTES
 
@@ -40,7 +40,7 @@ def cmd_init(args) -> int:
             _print_results(write_mcp_configs(idx.root))
         if not args.no_context:
             print("Context files:")
-            _print_results(write_context(idx, max_files=args.max_files, tree_depth=args.depth))
+            _print_results(write_context(idx, style=args.block, max_files=args.max_files, tree_depth=args.depth))
     return 0
 
 
@@ -59,9 +59,9 @@ def cmd_context(args) -> int:
             idx.update()
         if args.stdout:
             from .context import render_block
-            print(render_block(idx, max_files=args.max_files, tree_depth=args.depth))
+            print(render_block(idx, args.block, max_files=args.max_files, tree_depth=args.depth))
             return 0
-        _print_results(write_context(idx, max_files=args.max_files, tree_depth=args.depth))
+        _print_results(write_context(idx, style=args.block, max_files=args.max_files, tree_depth=args.depth))
     return 0
 
 
@@ -111,8 +111,11 @@ def build_parser() -> argparse.ArgumentParser:
                         help=f"skip files larger than this (default {DEFAULT_MAX_BYTES})")
 
     def ctx_opts(sp):
-        sp.add_argument("--max-files", type=int, default=40, help="key files listed in the context block (default 40)")
-        sp.add_argument("--depth", type=int, default=2, help="directory tree depth in the context block (default 2)")
+        sp.add_argument("--block", choices=BLOCK_STYLES, default="pointer",
+                        help="context-file block: 'pointer' (default, ~150 tokens pointing at the MCP tools) "
+                             "or 'full' (languages, tree, entry points, key files)")
+        sp.add_argument("--max-files", type=int, default=40, help="key files listed by --block full (default 40)")
+        sp.add_argument("--depth", type=int, default=2, help="directory tree depth for --block full (default 2)")
 
     sp = sub.add_parser("init", help="index + write context files + write MCP configs")
     common(sp, positional_path=True)

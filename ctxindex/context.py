@@ -236,8 +236,31 @@ def render_overview(index: Index, *, max_files: int = 40, tree_depth: int = 2, m
     return "\n".join(lines)
 
 
-def render_block(index: Index, **kw) -> str:
-    return f"{MARK_START}\n{render_overview(index, **kw)}\n{MARK_END}"
+BLOCK_STYLES = ("pointer", "full")
+_NON_CODE = {"markdown", "json", "yaml", "toml", "ini", "xml", "msbuild", "sln", "text", "rst", "make",
+             "docker", "cmake", "other"}
+
+
+def render_pointer(index: Index) -> str:
+    """A ~150-token note that the index exists and how to use it. Benchmarks showed the full
+    overview costs more tokens than it saves when loaded into every session, so the details
+    live behind `project_overview()` / PROJECT_MAP.md instead. No counts: it rarely changes."""
+    langs = [lang_name(l["lang"]) for l in index.stats()["languages"] if l["lang"] not in _NON_CODE][:4]
+    what = f"This repo ({', '.join(langs)}) is" if langs else "This repo is"
+    return (
+        "## Code index (ctxindex)\n\n"
+        f"{what} indexed by the `ctxindex` MCP server, which refreshes itself before each query. "
+        "Before broad grep/glob scans, try `find_symbol(name, kind?)` to jump to definitions "
+        "(`Class.method` works), `search_code(query, path_glob?, lang?)` for keyword search, "
+        "`file_outline(path)` before reading a large file, and `read_file(path, start_line, end_line)` "
+        "for just the lines you need. `project_overview()` gives the layout, entry points and key "
+        f"files; the full map is `{INDEX_DIR}/{MAP_FILE}`."
+    )
+
+
+def render_block(index: Index, style: str = "pointer", **kw) -> str:
+    body = render_overview(index, **kw) if style == "full" else render_pointer(index)
+    return f"{MARK_START}\n{body}\n{MARK_END}"
 
 
 def render_project_map(index: Index, *, max_symbols_per_file: int = 60, max_members: int = 30) -> str:
@@ -319,25 +342,27 @@ def upsert_block(path: Path, block: str) -> str:
     return "created"
 
 
-def write_context(index: Index, *, max_files: int = 40, tree_depth: int = 2,
+def write_context(index: Index, *, style: str = "pointer", max_files: int = 40, tree_depth: int = 2,
                   targets: tuple[str, ...] = CONTEXT_FILES) -> dict[str, str]:
-    results = _write_context_once(index, max_files, tree_depth, targets)
+    """Write the block into each context file plus PROJECT_MAP.md. ``style`` is "pointer"
+    (default: a short note pointing at the MCP tools) or "full" (the whole overview)."""
+    results = _write_context_once(index, style, max_files, tree_depth, targets)
     # The context files are indexed too (file counts, their line counts in the map), so re-render
     # until the output is a fixed point: running `ctxindex context` again then changes nothing.
     for _ in range(3):
         if not index.update().changed:
             break
-        again = _write_context_once(index, max_files, tree_depth, targets)
+        again = _write_context_once(index, style, max_files, tree_depth, targets)
         for k, v in again.items():
             if v != "unchanged" and results.get(k) == "unchanged":
                 results[k] = v
     return results
 
 
-def _write_context_once(index: Index, max_files: int, tree_depth: int,
+def _write_context_once(index: Index, style: str, max_files: int, tree_depth: int,
                         targets: tuple[str, ...]) -> dict[str, str]:
     results = {}
-    block = render_block(index, max_files=max_files, tree_depth=tree_depth)
+    block = render_block(index, style, max_files=max_files, tree_depth=tree_depth)
     for rel in targets:
         results[rel] = upsert_block(index.root / rel, block)
     map_path = index.dir / MAP_FILE

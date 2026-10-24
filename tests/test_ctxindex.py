@@ -202,7 +202,7 @@ def test_upsert_block_preserves_outside_text(tmp_path):
 
 def test_write_context_is_stable_and_not_indexed(index, repo):
     (repo / "CLAUDE.md").write_text("# House rules\n\nKeep me.\n")
-    res = write_context(index)
+    res = write_context(index, style="full")
     assert res["AGENTS.md"] == "created" and res["CLAUDE.md"] == "updated"
     assert (repo / ".github" / "copilot-instructions.md").exists()
     text = (repo / "CLAUDE.md").read_text()
@@ -211,9 +211,31 @@ def test_write_context_is_stable_and_not_indexed(index, repo):
     pm = (repo / ".ctxindex" / "PROJECT_MAP.md").read_text()
     assert "InventoryService" in pm and "restock" in pm
     # second run is a fixed point
-    assert set(write_context(index).values()) == {"unchanged"}
+    assert set(write_context(index, style="full").values()) == {"unchanged"}
     # generated block is never a search hit
     assert all(h["path"] not in ("AGENTS.md", "CLAUDE.md") for h in index.search("search_code"))
+
+
+def test_pointer_block_is_default_small_and_stable(index, repo):
+    (repo / "CLAUDE.md").write_text("# House rules\n")
+    write_context(index)
+    text = (repo / "CLAUDE.md").read_text()
+    block = text[text.index(MARK_START):]
+    assert text.startswith("# House rules\n")
+    assert len(block) < 1000  # ~150-200 tokens, vs several thousand for the full overview
+    assert "find_symbol" in block and "project_overview" in block and "PROJECT_MAP.md" in block
+    assert "Python" in block and "`app/models.py`" not in block
+    assert (repo / ".ctxindex" / "PROJECT_MAP.md").exists()
+    # adding a file doesn't change the pointer (no counts), so context files don't churn in git
+    (repo / "app" / "more.py").write_text("def more(): pass\n")
+    index.update()
+    res = write_context(index)
+    assert res["CLAUDE.md"] == res["AGENTS.md"] == "unchanged"
+    # switching styles replaces the block in place
+    write_context(index, style="full")
+    assert "`app/models.py`" in (repo / "CLAUDE.md").read_text()
+    write_context(index)
+    assert (repo / "CLAUDE.md").read_text() == text
 
 
 def test_tools_outline_and_read(index, repo):
